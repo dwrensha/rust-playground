@@ -175,8 +175,12 @@ cd ui
 sudo \
   TMPDIR=/mnt/playground \
   RUST_LOG=info \
-  PLAYGROUND_UI_ADDRESS=0.0.0.0 \
-  PLAYGROUND_UI_PORT=80 \
+  PLAYGROUND_UI_LISTEN_HOST=0.0.0.0 \
+  PLAYGROUND_UI_PUBLIC_HOST=play.integer32.com \
+  PLAYGROUND_UI_HTTP_PORT=80 \
+  PLAYGROUND_UI_HTTPS_PORT=443 \
+  PLAYGROUND_UI_HTTPS_PKCS12_FILE=/secure/path/certificate.p12 \
+  PLAYGROUND_UI_HTTPS_PKCS12_PASSWORD=hunter2 \
   PLAYGROUND_UI_ROOT=$PWD/frontend/build \
   ./target/x86_64-unknown-linux-musl/release/ui
 ```
