@@ -30,7 +30,15 @@ use iron::status;
 use mount::Mount;
 use serde::{Serialize, Deserialize};
 use playground_middleware::{
-    Staticfile, Cache, Prefix, ModifyWith, GuessContentType, FileLogger, StatisticLogger, Rewrite
+    Cache,
+    FileLogger,
+    GuessContentType,
+    HttpToHttpsRedirect,
+    ModifyWith,
+    Prefix,
+    Rewrite,
+    Staticfile,
+    StatisticLogger,
 };
 use hyper_native_tls::NativeTlsServer;
 
@@ -51,6 +59,7 @@ fn main() {
 
     let root: PathBuf = env::var_os("PLAYGROUND_UI_ROOT").expect("Must specify PLAYGROUND_UI_ROOT").into();
     let listen_host = env::var("PLAYGROUND_UI_LISTEN_HOST").unwrap_or(DEFAULT_LISTEN_HOST.to_string());
+    let public_host = env::var("PLAYGROUND_UI_PUBLIC_HOST").unwrap_or_else(|_| listen_host.clone());
     let http_port = env::var("PLAYGROUND_UI_HTTP_PORT").ok().and_then(|p| p.parse().ok()).unwrap_or(DEFAULT_HTTP_PORT);
     let https_port = env::var("PLAYGROUND_UI_HTTPS_PORT").ok().and_then(|p| p.parse().ok()).unwrap_or(DEFAULT_HTTPS_PORT);
     let pkcs12_file = env::var_os("PLAYGROUND_UI_HTTPS_PKCS12_FILE").map(PathBuf::from);
@@ -86,12 +95,18 @@ fn main() {
 
     match (pkcs12_file, pkcs12_password) {
         (Some(pkcs12_file), Some(pkcs12_password)) => {
+            let redirect = HttpToHttpsRedirect::new(&public_host, https_port).temporary();
             let ssl = NativeTlsServer::new(pkcs12_file, &pkcs12_password)
                 .expect("Unable to create the TLS server");
 
             let _https = Iron::new(chain).https(https_address, ssl)
                 .expect("Unable to start HTTPS server");
             info!("Started the HTTPS server on {:?}", https_address);
+
+            info!("Redirecting HTTP traffic to {:?}", redirect);
+            let _http = Iron::new(redirect).http(http_address)
+                .expect("Unable to start HTTP redirection server");
+            info!("Started the HTTP redirection server on {:?}", http_address);
         }
         _ => {
             let _http = Iron::new(chain).http(http_address)

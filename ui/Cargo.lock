@@ -396,7 +396,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 [[package]]
 name = "playground-middleware"
 version = "0.1.0"
-source = "git+https://github.com/integer32llc/playground-middleware#2093cdd4a026b5db13d9241e19469cac7fdb1572"
+source = "git+https://github.com/integer32llc/playground-middleware#3fbae131d8b08230d89e95b812129debdc6a21c5"
 dependencies = [
  "csv 0.15.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "iron 0.5.1 (registry+https://github.com/rust-lang/crates.io-index)",
