@@ -7,6 +7,7 @@ extern crate iron;
 extern crate mount;
 extern crate playground_middleware;
 extern crate bodyparser;
+extern crate hyper_native_tls;
 extern crate serde;
 extern crate serde_json;
 #[macro_use]
@@ -31,11 +32,13 @@ use serde::{Serialize, Deserialize};
 use playground_middleware::{
     Staticfile, Cache, Prefix, ModifyWith, GuessContentType, FileLogger, StatisticLogger, Rewrite
 };
+use hyper_native_tls::NativeTlsServer;
 
 use sandbox::Sandbox;
 
-const DEFAULT_ADDRESS: &'static str = "127.0.0.1";
-const DEFAULT_PORT: u16 = 5000;
+const DEFAULT_LISTEN_HOST: &'static str = "127.0.0.1";
+const DEFAULT_HTTP_PORT: u16 = 5000;
+const DEFAULT_HTTPS_PORT: u16 = 5001;
 const DEFAULT_LOG_FILE: &'static str = "access-log.csv";
 
 mod sandbox;
@@ -47,9 +50,15 @@ fn main() {
     env_logger::init().expect("Unable to initialize logger");
 
     let root: PathBuf = env::var_os("PLAYGROUND_UI_ROOT").expect("Must specify PLAYGROUND_UI_ROOT").into();
-    let address = env::var("PLAYGROUND_UI_ADDRESS").unwrap_or(DEFAULT_ADDRESS.to_string());
-    let port = env::var("PLAYGROUND_UI_PORT").ok().and_then(|p| p.parse().ok()).unwrap_or(DEFAULT_PORT);
+    let listen_host = env::var("PLAYGROUND_UI_LISTEN_HOST").unwrap_or(DEFAULT_LISTEN_HOST.to_string());
+    let http_port = env::var("PLAYGROUND_UI_HTTP_PORT").ok().and_then(|p| p.parse().ok()).unwrap_or(DEFAULT_HTTP_PORT);
+    let https_port = env::var("PLAYGROUND_UI_HTTPS_PORT").ok().and_then(|p| p.parse().ok()).unwrap_or(DEFAULT_HTTPS_PORT);
+    let pkcs12_file = env::var_os("PLAYGROUND_UI_HTTPS_PKCS12_FILE").map(PathBuf::from);
+    let pkcs12_password = env::var("PLAYGROUND_UI_HTTPS_PKCS12_PASSWORD").ok();
     let logfile = env::var("PLAYGROUND_LOG_FILE").unwrap_or(DEFAULT_LOG_FILE.to_string());
+
+    let http_address  = (listen_host.as_str(), http_port);
+    let https_address = (listen_host.as_str(), https_port);
 
     let files = Staticfile::new(&root).expect("Unable to open root directory");
     let mut files = Chain::new(files);
@@ -75,8 +84,21 @@ fn main() {
     chain.link_around(logger);
     chain.link_before(rewrite);
 
-    info!("Starting the server on {}:{}", address, port);
-    Iron::new(chain).http((&*address, port)).expect("Unable to start server");
+    match (pkcs12_file, pkcs12_password) {
+        (Some(pkcs12_file), Some(pkcs12_password)) => {
+            let ssl = NativeTlsServer::new(pkcs12_file, &pkcs12_password)
+                .expect("Unable to create the TLS server");
+
+            let _https = Iron::new(chain).https(https_address, ssl)
+                .expect("Unable to start HTTPS server");
+            info!("Started the HTTPS server on {:?}", https_address);
+        }
+        _ => {
+            let _http = Iron::new(chain).http(http_address)
+                .expect("Unable to start HTTP server");
+            info!("Starting the HTTP server on {:?}", http_address);
+        }
+    }
 }
 
 fn compile(req: &mut Request) -> IronResult<Response> {
