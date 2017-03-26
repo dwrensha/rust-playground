@@ -27,8 +27,8 @@ require 'capybara/poltergeist'
 require 'capybara-screenshot/rspec'
 require 'phantomjs'
 
-ADDRESS = ENV.fetch('PLAYGROUND_UI_ADDRESS', '127.0.0.1')
-PORT = ENV.fetch('PLAYGROUND_UI_PORT', '5000')
+ADDRESS = ENV.fetch('PLAYGROUND_UI_PUBLIC_HOST', '127.0.0.1')
+PORT = ENV.fetch('PLAYGROUND_UI_HTTP_PORT', '5000')
 
 Capybara.register_driver :poltergeist do |app|
   Capybara::Poltergeist::Driver.new(app, phantomjs: Phantomjs.path)
