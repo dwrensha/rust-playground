@@ -80,6 +80,13 @@ perform tests on! Once fixed, you can choose to be credited here.
 
 ## Deployment
 
+### HTTPS
+
+The Playground can optionally be served using HTTPS. Once you have a
+PKCS12 identity file, use the `PLAYGROUND_UI_HTTPS_PKCS12_FILE` and
+`PLAYGROUND_UI_HTTPS_PKCS12_PASSWORD` environment variables to enable
+HTTPS. All HTTP traffic will then be redirected to HTTPS.
+
 ### Amazon EC2 (Amazon Linux)
 
 Here's an example session. This could definitely be improved and
